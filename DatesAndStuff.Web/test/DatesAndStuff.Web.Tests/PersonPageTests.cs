@@ -175,8 +175,7 @@ public class PersonPageTests
         wait.Until(ExpectedConditions.ElementToBeClickable(submitButtonBy)).Click();
 
         // Assert
-        var expectedErrorMessage = "The specified percentag should be between -10 and infinity.";
-
+        var expectedErrorMessage = "The specified percentage should be greater than -10.";
         var validationSummaryErrorBy = By.XPath(
             $"//ul[contains(@class, 'validation-errors')]/li[contains(text(), '{expectedErrorMessage}')]");
 
@@ -191,6 +190,57 @@ public class PersonPageTests
 
         validationSummaryError.Should().Contain(expectedErrorMessage);
         fieldValidationError.Should().Contain(expectedErrorMessage);
+    }
+
+    [Test]
+    public void Person_SalaryIncreaseMinusTen_ShouldShowValidationErrorsAndNotUpdateSalary()
+    {
+        // Arrange
+        driver.Navigate().GoToUrl(BaseURL);
+
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+        wait.IgnoreExceptionTypes(typeof(StaleElementReferenceException), typeof(NoSuchElementException));
+
+        wait.Until(ExpectedConditions.ElementToBeClickable(
+            By.XPath("//*[@data-test='PersonPageNavigation']"))).Click();
+
+        var inputBy = By.XPath("//*[@data-test='SalaryIncreasePercentageInput']");
+        var submitButtonBy = By.XPath("//*[@data-test='SalaryIncreaseSubmitButton']");
+        var salaryLabelBy = By.XPath("//*[@data-test='DisplayedSalary']");
+
+        var salaryBeforeSubmission = double.Parse(
+            wait.Until(ExpectedConditions.ElementExists(salaryLabelBy)).Text,
+            System.Globalization.CultureInfo.InvariantCulture);
+
+        wait.Until(driver =>
+        {
+            var input = driver.FindElement(inputBy);
+            input.Clear();
+            input.SendKeys("-10");
+
+            return true;
+        });
+
+        // Act
+        wait.Until(ExpectedConditions.ElementToBeClickable(submitButtonBy)).Click();
+
+        // Assert
+        var expectedErrorMessage = "The specified percentage should be greater than -10.";
+
+        var validationSummaryErrorBy = By.XPath(
+            $"//ul[contains(@class, 'validation-errors')]/li[contains(text(), '{expectedErrorMessage}')]");
+
+        var fieldValidationErrorBy = By.XPath(
+            $"//*[@data-test='SalaryIncreasePercentageInput']/following-sibling::*[contains(@class, 'validation-message') and contains(text(), '{expectedErrorMessage}')]");
+
+        wait.Until(ExpectedConditions.ElementExists(validationSummaryErrorBy));
+        wait.Until(ExpectedConditions.ElementExists(fieldValidationErrorBy));
+
+        var salaryAfterSubmission = double.Parse(
+            driver.FindElement(salaryLabelBy).Text,
+            System.Globalization.CultureInfo.InvariantCulture);
+
+        salaryAfterSubmission.Should().BeApproximately(salaryBeforeSubmission, 0.001);
     }
     private bool IsElementPresent(By by)
     {
