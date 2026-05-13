@@ -208,9 +208,18 @@ public class PersonPageTests
         var submitButtonBy = By.XPath("//*[@data-test='SalaryIncreaseSubmitButton']");
         var salaryLabelBy = By.XPath("//*[@data-test='DisplayedSalary']");
 
-        var salaryBeforeSubmission = double.Parse(
-            wait.Until(ExpectedConditions.ElementExists(salaryLabelBy)).Text,
-            System.Globalization.CultureInfo.InvariantCulture);
+        double salaryBeforeSubmission = 0;
+
+        wait.Until(driver =>
+        {
+            var salaryText = driver.FindElement(salaryLabelBy).Text;
+
+            return double.TryParse(
+                salaryText,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out salaryBeforeSubmission);
+        });
 
         wait.Until(driver =>
         {
@@ -236,9 +245,18 @@ public class PersonPageTests
         wait.Until(ExpectedConditions.ElementExists(validationSummaryErrorBy));
         wait.Until(ExpectedConditions.ElementExists(fieldValidationErrorBy));
 
-        var salaryAfterSubmission = double.Parse(
-            driver.FindElement(salaryLabelBy).Text,
-            System.Globalization.CultureInfo.InvariantCulture);
+        double salaryAfterSubmission = 0;
+
+        wait.Until(driver =>
+        {
+            var salaryText = driver.FindElement(salaryLabelBy).Text;
+
+            return double.TryParse(
+                salaryText,
+                System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out salaryAfterSubmission);
+        });
 
         salaryAfterSubmission.Should().BeApproximately(salaryBeforeSubmission, 0.001);
     }
@@ -288,5 +306,39 @@ public class PersonPageTests
         {
             acceptNextAlert = true;
         }
+    }
+
+    [Test]
+    public void BlazeDemo_MexicoCityToDublin_ShouldHaveAtLeastThreeFlights()
+    {
+        // Arrange
+        driver.Navigate().GoToUrl("https://blazedemo.com/");
+
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+
+        wait.Until(ExpectedConditions.ElementToBeClickable(
+            By.XPath("//select[@name='fromPort']"))).Click();
+
+        wait.Until(ExpectedConditions.ElementToBeClickable(
+            By.XPath("//select[@name='fromPort']/option[@value='Mexico City']"))).Click();
+
+        wait.Until(ExpectedConditions.ElementToBeClickable(
+            By.XPath("//select[@name='toPort']"))).Click();
+
+        wait.Until(ExpectedConditions.ElementToBeClickable(
+            By.XPath("//select[@name='toPort']/option[@value='Dublin']"))).Click();
+
+        // Act
+        wait.Until(ExpectedConditions.ElementToBeClickable(
+            By.XPath("//input[@value='Find Flights']"))).Click();
+
+        // Assert
+        var flightRows = wait.Until(driver =>
+        {
+            var rows = driver.FindElements(By.XPath("//table/tbody/tr"));
+            return rows.Count > 0 ? rows : null;
+        });
+
+        flightRows.Count.Should().BeGreaterThanOrEqualTo(3);
     }
 }
