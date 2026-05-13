@@ -146,6 +146,52 @@ public class PersonPageTests
 
         salaryAfterSubmission.Should().BeApproximately(expectedSalary, 0.001);
     }
+
+    [Test]
+    public void Person_SalaryIncreaseBelowMinusTen_ShouldShowValidationErrors()
+    {
+        // Arrange
+        driver.Navigate().GoToUrl(BaseURL);
+
+        var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(10));
+        wait.IgnoreExceptionTypes(typeof(StaleElementReferenceException), typeof(NoSuchElementException));
+
+        wait.Until(ExpectedConditions.ElementToBeClickable(
+            By.XPath("//*[@data-test='PersonPageNavigation']"))).Click();
+
+        var inputBy = By.XPath("//*[@data-test='SalaryIncreasePercentageInput']");
+        var submitButtonBy = By.XPath("//*[@data-test='SalaryIncreaseSubmitButton']");
+
+        wait.Until(driver =>
+        {
+            var input = driver.FindElement(inputBy);
+            input.Clear();
+            input.SendKeys("-11");
+
+            return true;
+        });
+
+        // Act
+        wait.Until(ExpectedConditions.ElementToBeClickable(submitButtonBy)).Click();
+
+        // Assert
+        var expectedErrorMessage = "The specified percentag should be between -10 and infinity.";
+
+        var validationSummaryErrorBy = By.XPath(
+            $"//ul[contains(@class, 'validation-errors')]/li[contains(text(), '{expectedErrorMessage}')]");
+
+        var fieldValidationErrorBy = By.XPath(
+            $"//*[@data-test='SalaryIncreasePercentageInput']/following-sibling::*[contains(@class, 'validation-message') and contains(text(), '{expectedErrorMessage}')]");
+
+        wait.Until(ExpectedConditions.ElementExists(validationSummaryErrorBy));
+        wait.Until(ExpectedConditions.ElementExists(fieldValidationErrorBy));
+
+        var validationSummaryError = driver.FindElement(validationSummaryErrorBy).Text;
+        var fieldValidationError = driver.FindElement(fieldValidationErrorBy).Text;
+
+        validationSummaryError.Should().Contain(expectedErrorMessage);
+        fieldValidationError.Should().Contain(expectedErrorMessage);
+    }
     private bool IsElementPresent(By by)
     {
         try
